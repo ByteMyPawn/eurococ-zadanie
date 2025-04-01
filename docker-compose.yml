@@ -1,29 +1,40 @@
-version: "3.8"
 
 services:
   db:
-    image: mysql:8
+    image: mysql:8.0
+    container_name: project-db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: orders_db
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_slovak_ci
+    command: 
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_slovak_ci
     ports:
-      - "3306:3306"
+      - "${DATABASE_PORT}:3306"
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   api:
     build: ./api
+    ports: 
+      - "8000:8000"
+    volumes: 
+      - ./api:/app
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: "mysql+pymysql://root:root@db/orders_db"
-    expose:
-      - "8000"
+      - DATABASE_URL=mysql+pymysql://root:${DATABASE_PASSWORD}@db:3306/orders_db?charset=utf8mb4
+    networks:
+      - app-network
 
   web:
     build: ./web
@@ -31,6 +42,8 @@ services:
       - api
     ports:
       - "8080:8080"
+    networks:
+      - app-network
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -39,4 +52,10 @@ services:
       - "8081:80"
     environment:
       PMA_HOST: db
-      MYSQL_ROOT_PASSWORD: root # Adjust if needed
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

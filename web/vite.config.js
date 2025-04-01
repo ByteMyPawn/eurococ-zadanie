@@ -1,11 +1,16 @@
-import { defineConfig } from "vite";
-import vue from "@vitejs/plugin-vue";
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import path from 'path'
 
 export default defineConfig({
   plugins: [vue()],
-  server: {
-    proxy: {
-      "/api": "http://localhost:8000", // Presmerovanie API požiadaviek na backend
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
     },
   },
-});
+  server: {
+    port: 8080,
+    host: '0.0.0.0',
+  }
+})

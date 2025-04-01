@@ -40,10 +40,4 @@ ENV/
 .env.*.local
 
 # Docker
-.docker/
-
-# Database
-*.sqlite3
-*.db
-
-web/node_modules/
+.docker/ 

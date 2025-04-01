@@ -1,33 +1,41 @@
 <template>
-  <form @submit.prevent="submitOrder">
-    <input v-model="order.customer_name" placeholder="Meno zákazníka" required>
-    <input v-model.number="order.price" type="number" placeholder="Cena" required>
-    <button type="submit">Odoslať</button>
-  </form>
+  <div class="order-form">
+    <h2>Create Order</h2>
+    <form @submit.prevent="submitOrder">
+      <div>
+        <label>Customer Name:</label>
+        <input v-model="order.customer_name" type="text" required>
+      </div>
+      <div>
+        <label>Product Name:</label>
+        <input v-model="order.product_name" type="text" required>
+      </div>
+      <div>
+        <label>Price:</label>
+        <input v-model="order.price" type="number" step="0.01" required>
+      </div>
+      <button type="submit">Create Order</button>
+    </form>
+  </div>
 </template>
 
 <script>
-import { ref } from "vue";
-import api from "@/services/api";
-
 export default {
-  setup() {
-    const order = ref({
-      customer_name: "",
-      price: 0,
-    });
-
-    const submitOrder = async () => {
-      if (order.value.price < 0) {
-        alert("Cena nemôže byť záporná!");
-        return;
+  name: 'OrderForm',
+  data() {
+    return {
+      order: {
+        customer_name: '',
+        product_name: '',
+        price: 0
       }
-      await api.post("/orders/", order.value);
-      order.value.customer_name = "";
-      order.value.price = 0;
-    };
-
-    return { order, submitOrder };
+    }
   },
-};
+  methods: {
+    submitOrder() {
+      // Add API call here
+      console.log('Submitting order:', this.order)
+    }
+  }
+}
 </script>
