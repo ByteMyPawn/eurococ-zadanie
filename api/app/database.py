@@ -4,16 +4,25 @@ from sqlalchemy.orm import sessionmaker
 import os
 import time
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.pool import QueuePool
 
 # Get database URL from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
+
 print(f"Using DATABASE_URL: {DATABASE_URL}")
 
-
+# Configure engine with connection pooling
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,
-    echo=True
+    poolclass=QueuePool,
+    pool_size=5,  # Number of permanent connections
+    max_overflow=10,  # Number of additional connections when pool is full
+    pool_timeout=30,  # Seconds to wait for available connection
+    pool_recycle=1800,  # Recycle connections after 30 minutes
+    pool_pre_ping=True,  # Enable connection health checks
+    echo=False  # Set to True for SQL query logging
 )
 
 # Set UTF8MB4 for all connections
@@ -30,8 +39,13 @@ def set_utf8mb4(dbapi_connection, connection_record):
         cursor.close()
 
 
-# Create session factory
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Create session factory with proper configuration
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+    expire_on_commit=False  # Prevent expired object issues
+)
 
 # Create base class for declarative models
 Base = declarative_base()

@@ -33,7 +33,7 @@ class OrderStatus(Base):
 class Order(Base):
     __tablename__ = "orders"
     __table_args__ = (
-        CheckConstraint("price > 0", name="check_price_positive"),
+        CheckConstraint("price >= 0", name="check_price_non_negative"),
         {
             'mysql_charset': 'utf8mb4',
             'mysql_collate': 'utf8mb4_slovak_ci'
@@ -45,10 +45,8 @@ class Order(Base):
         Integer,
         ForeignKey("vehicle_categories.id"),
         nullable=True)
-    customer_name = Column(VARCHAR(255, charset='utf8mb4', collation='utf8mb4_slovak_ci'),
-                           nullable=False)
-    product_name = Column(VARCHAR(255, charset='utf8mb4', collation='utf8mb4_slovak_ci'),
-                          nullable=False)
+    brand = Column(VARCHAR(255, charset='utf8mb4', collation='utf8mb4_slovak_ci'),
+                   nullable=False)
     price = Column(Float, nullable=False)
     status_id = Column(
         Integer,

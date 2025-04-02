@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from ..database import SessionLocal
+from sqlalchemy.exc import IntegrityError
+from ..database import get_db
 from ..models import VehicleCategory
+from ..schemas import VehicleCategoryCreate, VehicleCategoryResponse
+from typing import List
 
 router = APIRouter(
     prefix="/vehicle-categories",
@@ -9,16 +12,67 @@ router = APIRouter(
 )
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-@router.get("/")
-def get_categories(db: Session = Depends(get_db)):
+@router.get("/", response_model=List[VehicleCategoryResponse])
+def get_vehicle_categories(db: Session = Depends(get_db)):
     categories = db.query(VehicleCategory).all()
-    return {"categories": [{"id": cat.id, "name": cat.name}
-                           for cat in categories]}
+    return categories
+
+
+@router.post("/", response_model=VehicleCategoryResponse)
+def create_vehicle_category(
+        category: VehicleCategoryCreate, db: Session = Depends(get_db)):
+    try:
+        db_category = VehicleCategory(name=category.name)
+        db.add(db_category)
+        db.commit()
+        db.refresh(db_category)
+        return db_category
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Vehicle category with name '{category.name}' already exists"
+        )
+
+
+@router.get("/{category_id}",
+            response_model=VehicleCategoryResponse)
+def get_vehicle_category(category_id: int, db: Session = Depends(get_db)):
+    category = db.query(VehicleCategory).filter(
+        VehicleCategory.id == category_id).first()
+    if not category:
+        raise HTTPException(
+            status_code=404,
+            detail="Vehicle category not found")
+    return category
+
+
+@router.put("/{category_id}",
+            response_model=VehicleCategoryResponse)
+def update_vehicle_category(
+        category_id: int, category: VehicleCategoryCreate, db: Session = Depends(get_db)):
+    db_category = db.query(VehicleCategory).filter(
+        VehicleCategory.id == category_id).first()
+    if not db_category:
+        raise HTTPException(
+            status_code=404,
+            detail="Vehicle category not found")
+
+    db_category.name = category.name
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+
+@router.delete("/{category_id}")
+def delete_vehicle_category(category_id: int, db: Session = Depends(get_db)):
+    category = db.query(VehicleCategory).filter(
+        VehicleCategory.id == category_id).first()
+    if not category:
+        raise HTTPException(
+            status_code=404,
+            detail="Vehicle category not found")
+
+    db.delete(category)
+    db.commit()
+    return {"message": "Vehicle category deleted successfully"}

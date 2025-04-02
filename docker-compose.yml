@@ -1,4 +1,3 @@
-
 services:
   db:
     image: mysql:8.0
@@ -9,9 +8,13 @@ services:
       MYSQL_DATABASE: orders_db
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_slovak_ci
+      TZ: Europe/Bratislava
     command: 
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_slovak_ci
+      - --default-time-zone=Europe/Bratislava
+    volumes:
+      - ./mysql/data:/var/lib/mysql
     ports:
       - "${DATABASE_PORT}:3306"
     healthcheck:
@@ -20,7 +23,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - app-network
+      - project_default
 
   api:
     build: ./api
@@ -28,22 +31,30 @@ services:
       - "8000:8000"
     volumes: 
       - ./api:/app
+      - /app/venv
     depends_on:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=mysql+pymysql://root:${DATABASE_PASSWORD}@db:3306/orders_db?charset=utf8mb4
+      - DATABASE_URL=mysql+pymysql://root:root@db:3306/orders_db?charset=utf8mb4
+      - TZ=Europe/Bratislava
+      - FORCE_RECREATE_DB=false
+    command: >
+      sh -c "pip install -r requirements.txt &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     networks:
-      - app-network
+      - project_default
 
   web:
     build: ./web
     depends_on:
       - api
     ports:
-      - "8080:8080"
+      - "5173:5173"
+    environment:
+      - TZ=Europe/Bratislava
     networks:
-      - app-network
+      - project_default
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -51,11 +62,12 @@ services:
     ports:
       - "8081:80"
     environment:
-      PMA_HOST: db
-      MYSQL_ROOT_PASSWORD: root
+      - PMA_HOST=db
+      - MYSQL_ROOT_PASSWORD=root
+      - TZ=Europe/Bratislava
     networks:
-      - app-network
+      - project_default
 
 networks:
-  app-network:
-    driver: bridge
+  project_default:
+    external: true

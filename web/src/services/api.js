@@ -1,8 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "http://api:8000", // Názov služby v docker-compose.yml
+    baseURL: "http://localhost:8000", // Use localhost for browser access
 });
-
 
 export default api;
