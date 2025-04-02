@@ -34,7 +34,7 @@ class PaginatedResponse(BaseModel):
     total_pages: int
 
 
-@router.get("/", response_model=PaginatedResponse)
+@router.get("", response_model=PaginatedResponse)
 def get_orders(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -102,36 +102,25 @@ def get_orders(
     total = query.count()
     logger.info(f"Total orders in database: {total}")
 
+    # Calculate total pages
     total_pages = (total + per_page - 1) // per_page
     logger.info(f"Total pages: {total_pages}")
 
-    # Get paginated orders
-    orders = query\
-        .order_by(desc(Order.id))\
-        .offset((page - 1) * per_page)\
-        .limit(per_page)\
-        .all()
+    # Apply pagination
+    query = query.order_by(desc(Order.created_at))
+    query = query.offset((page - 1) * per_page).limit(per_page)
 
+    # Execute query
+    orders = query.all()
     logger.info(f"Retrieved {len(orders)} orders")
+
+    # Log each order for debugging
     for order in orders:
         logger.info(
             f"Order: id={order.id}, brand={order.brand}, category_id={order.vehicle_category_id}, status_id={order.status_id}")
 
-    # Convert orders to response format
-    order_responses = []
-    for order in orders:
-        order_dict = {
-            "id": order.id,
-            "brand": order.brand,
-            "price": order.price,
-            "created_at": order.created_at,
-            "vehicle_category_id": order.vehicle_category_id,
-            "status_id": order.status_id
-        }
-        order_responses.append(order_dict)
-
     return {
-        "items": order_responses,
+        "items": orders,
         "total": total,
         "page": page,
         "per_page": per_page,
@@ -139,16 +128,16 @@ def get_orders(
     }
 
 
-@router.post("/", response_model=OrderResponse)
+@router.post("", response_model=OrderResponse)
 def create_order(order: OrderCreate, db: Session = Depends(get_db)):
-    new_order = Order(**order.dict())
-    db.add(new_order)
+    db_order = Order(**order.dict())
+    db.add(db_order)
     db.commit()
-    db.refresh(new_order)
-    return new_order
+    db.refresh(db_order)
+    return db_order
 
 
-@router.get("/{order_id}")
+@router.get("/{order_id}", response_model=OrderResponse)
 def get_order(order_id: int, db: Session = Depends(get_db)):
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
@@ -156,19 +145,19 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
     return order
 
 
-@router.put("/{order_id}")
+@router.put("/{order_id}", response_model=OrderResponse)
 def update_order(order_id: int, order: OrderCreate,
                  db: Session = Depends(get_db)):
-    existing_order = db.query(Order).filter(Order.id == order_id).first()
-    if not existing_order:
+    db_order = db.query(Order).filter(Order.id == order_id).first()
+    if not db_order:
         raise HTTPException(status_code=404, detail="Order not found")
 
     for key, value in order.dict().items():
-        setattr(existing_order, key, value)
+        setattr(db_order, key, value)
 
     db.commit()
-    db.refresh(existing_order)
-    return existing_order
+    db.refresh(db_order)
+    return db_order
 
 
 @router.delete("/{order_id}")
@@ -176,7 +165,6 @@ def delete_order(order_id: int, db: Session = Depends(get_db)):
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-
     db.delete(order)
     db.commit()
     return {"message": "Order deleted successfully"}

@@ -4,6 +4,8 @@ from ..database import SessionLocal
 from ..models import OrderStatus
 from pydantic import BaseModel
 from typing import Dict
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 
 router = APIRouter(
     prefix="/statuses",
@@ -20,7 +22,7 @@ def get_db():
 
 
 class StatusCreate(BaseModel):
-    name: str
+    status: str
 
 
 class StatusResponse(BaseModel):
@@ -31,20 +33,21 @@ class StatusResponse(BaseModel):
         from_attributes = True
 
 
-@router.get("/", response_model=Dict[int, str])
+@router.get("", response_model=Dict[str, str])
 def get_statuses(db: Session = Depends(get_db)):
     statuses = db.query(OrderStatus).all()
-    return {status.id: status.status for status in statuses}
+    status_dict = {str(status.id): status.status for status in statuses}
+    return JSONResponse(content=jsonable_encoder(status_dict))
 
 
-@router.post("/", response_model=StatusResponse)
+@router.post("", response_model=StatusResponse)
 def create_status(status: StatusCreate, db: Session = Depends(get_db)):
     try:
-        new_status = OrderStatus(status=status.name)
+        new_status = OrderStatus(status=status.status)
         db.add(new_status)
         db.commit()
         db.refresh(new_status)
-        return new_status
+        return JSONResponse(content=jsonable_encoder(new_status))
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400,

@@ -218,7 +218,7 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" @click="cancelEdit">Zrušiť</button>
+          <button class="btn btn-danger" @click="cancelEdit">Zrušiť</button>
           <button class="btn btn-primary" @click="saveOrder">Uložiť</button>
         </div>
       </div>

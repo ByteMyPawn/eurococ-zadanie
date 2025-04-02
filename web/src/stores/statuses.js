@@ -12,12 +12,9 @@ export const useStatusesStore = defineStore('statuses', {
     async fetchStatuses() {
       this.loading = true
       try {
-        const response = await api.get('/api/settings/statuses')
-        // Convert array response to object format for compatibility
-        this.statuses = response.data.reduce((acc, status) => {
-          acc[status.id] = status.status
-          return acc
-        }, {})
+        const response = await api.get('/api/statuses')
+        // Response is already in the correct format {id: status}
+        this.statuses = response.data
         this.error = null
       } catch (error) {
         this.error = error.response?.data?.detail || error.message || 'Chyba pri načítaní stavov'
@@ -28,7 +25,7 @@ export const useStatusesStore = defineStore('statuses', {
 
     async addStatus(name) {
       try {
-        await api.post('/api/settings/statuses', { status: name })
+        await api.post('/api/statuses', { status: name })
         await this.fetchStatuses()
         return true
       } catch (error) {
@@ -39,7 +36,7 @@ export const useStatusesStore = defineStore('statuses', {
 
     async deleteStatus(id) {
       try {
-        await api.delete(`/api/settings/statuses/${id}`)
+        await api.delete(`/api/statuses/${id}`)
         await this.fetchStatuses()
         return true
       } catch (error) {

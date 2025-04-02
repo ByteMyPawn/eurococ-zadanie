@@ -17,14 +17,16 @@ def init_db(force_recreate=False):
             if force_recreate:
                 # Drop all tables first
                 Base.metadata.drop_all(bind=engine)
+                print("Dropped all existing tables")
 
             # Create all tables
             Base.metadata.create_all(bind=engine)
+            print("Created all tables")
 
             db = SessionLocal()
             try:
-                # Check if we already have data
-                if db.query(OrderStatus).count() == 0:
+                # Always initialize statuses when force_recreate is True
+                if force_recreate or db.query(OrderStatus).count() == 0:
                     # Initialize order statuses
                     statuses = [
                         OrderStatus(status="Nové"),
@@ -35,6 +37,7 @@ def init_db(force_recreate=False):
                     for status in statuses:
                         db.add(status)
                     db.commit()
+                    print("Initialized order statuses")
 
                     # Initialize vehicle categories
                     categories = [
@@ -44,6 +47,7 @@ def init_db(force_recreate=False):
                     for category in categories:
                         db.add(category)
                     db.commit()
+                    print("Initialized vehicle categories")
 
                     # Get status and category IDs
                     status_map = {
@@ -70,6 +74,7 @@ def init_db(force_recreate=False):
                             )
                             db.add(order)
                         db.commit()
+                    print("Created sample orders")
 
                     print("Database initialized successfully with sample data!")
                 else:
@@ -80,6 +85,7 @@ def init_db(force_recreate=False):
             except IntegrityError as e:
                 print(f"Error initializing database: {e}")
                 db.rollback()
+                raise
             finally:
                 db.close()
 

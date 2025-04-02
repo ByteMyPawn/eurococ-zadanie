@@ -39,6 +39,7 @@ services:
       - DATABASE_URL=mysql+pymysql://root:root@db:3306/orders_db?charset=utf8mb4
       - TZ=Europe/Bratislava
       - FORCE_RECREATE_DB=false
+      - PYTHONPATH=/app
     command: >
       sh -c "pip install -r requirements.txt &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"

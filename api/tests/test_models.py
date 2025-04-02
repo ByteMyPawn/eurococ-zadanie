@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, CheckConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.mysql import VARCHAR
 from datetime import datetime
 
 Base = declarative_base()
@@ -8,38 +9,46 @@ Base = declarative_base()
 
 class VehicleCategory(Base):
     __tablename__ = "vehicle_categories"
+    __table_args__ = {
+        'mysql_charset': 'utf8mb4',
+        'mysql_collate': 'utf8mb4_slovak_ci'
+    }
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(
-        String(
-            50,
-            collation='utf8mb4_unicode_ci'),
-        unique=True,
-        nullable=False)
+    name = Column(VARCHAR(50, charset='utf8mb4', collation='utf8mb4_slovak_ci'),
+                  unique=True, nullable=False)
 
 
 class OrderStatus(Base):
     __tablename__ = "order_statuses"
+    __table_args__ = {
+        'mysql_charset': 'utf8mb4',
+        'mysql_collate': 'utf8mb4_slovak_ci'
+    }
 
     id = Column(Integer, primary_key=True, index=True)
-    status = Column(
-        String(
-            50,
-            collation='utf8mb4_unicode_ci'),
-        unique=True,
-        nullable=False)
+    status = Column(VARCHAR(50, charset='utf8mb4', collation='utf8mb4_slovak_ci'),
+                    unique=True, nullable=False)
     orders = relationship("Order", back_populates="status")
 
 
 class Order(Base):
     __tablename__ = "orders"
+    __table_args__ = (
+        CheckConstraint("price >= 0", name="check_price_non_negative"),
+        {
+            'mysql_charset': 'utf8mb4',
+            'mysql_collate': 'utf8mb4_slovak_ci'
+        }
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     vehicle_category_id = Column(
         Integer,
         ForeignKey("vehicle_categories.id"),
         nullable=True)
-    brand = Column(String(255, collation='utf8mb4_unicode_ci'), nullable=False)
+    brand = Column(VARCHAR(255, charset='utf8mb4', collation='utf8mb4_slovak_ci'),
+                   nullable=False)
     price = Column(Float, nullable=False)
     status_id = Column(
         Integer,

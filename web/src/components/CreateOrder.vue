@@ -100,6 +100,8 @@ export default {
   async created() {
     await this.categoriesStore.fetchCategories()
     await this.statusesStore.fetchStatuses()
+    // Set default status to "Nové" (ID 1)
+    this.form.status = 1
   },
   methods: {
     async createOrder() {
@@ -119,12 +121,18 @@ export default {
       }
 
       try {
-        await api.post('/api/orders', this.form);
+        // Ensure status_id is set to 1 if not selected
+        const orderData = {
+          ...this.form,
+          status_id: this.form.status || 1
+        };
+        
+        await api.post('/api/orders', orderData);
         // Reset form
         this.form = {
           brand: '',
           category: '',
-          status: '',
+          status: 1,  // Keep the default status
           price: ''
         };
         // Emit event to parent to refresh orders list

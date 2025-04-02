@@ -8,6 +8,8 @@ from sqlalchemy import text
 import logging
 import os
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +18,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Orders API",
     description="API for managing orders and vehicle categories",
-    version="1.0.0"
+    version="1.0.0",
+    # Disable automatic trailing slashes
+    redirect_slashes=False,
+    default_response_class=JSONResponse
 )
 
 # Create an API router for all routes

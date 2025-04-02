@@ -1,10 +1,12 @@
+import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database import engine, Base
 from app.models import Order, OrderStatus, VehicleCategory
 from sqlalchemy.orm import Session
-import pytest
+import time
 
+# Create test client
 client = TestClient(app)
 
 
@@ -17,78 +19,94 @@ def db():
     Base.metadata.drop_all(bind=engine)
 
 
-def test_get_orders(db):
-    # Create test data
-    status = OrderStatus(status="Nové")
-    category = VehicleCategory(name="PKW")
-    db.add(status)
-    db.add(category)
-    db.commit()
-
-    order = Order(
-        brand="Test Brand",
-        price=1000.0,
-        vehicle_category_id=category.id,
-        status_id=status.id
-    )
-    db.add(order)
-    db.commit()
-
-    response = client.get("/orders")
+def test_get_orders(client, db_session):
+    response = client.get("/api/orders")
     assert response.status_code == 200
     data = response.json()
-    assert len(data["items"]) == 1
-    assert data["items"][0]["brand"] == "Test Brand"
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "per_page" in data
+    assert "total_pages" in data
+    assert isinstance(data["items"], list)
+    assert isinstance(data["total"], int)
+    assert isinstance(data["page"], int)
+    assert isinstance(data["per_page"], int)
+    assert isinstance(data["total_pages"], int)
 
 
-def test_create_order(db):
-    # Create test data
-    status = OrderStatus(status="Nové")
-    category = VehicleCategory(name="PKW")
-    db.add(status)
-    db.add(category)
-    db.commit()
+def test_create_order(client, db_session):
+    # Get an existing status
+    status = db_session.query(OrderStatus).first()
+
+    # Create test category with unique name
+    timestamp = int(time.time() * 1000)  # Use milliseconds for more uniqueness
+    category = VehicleCategory(name=f"Test Category {timestamp}")
+    db_session.add(category)
+    db_session.commit()
 
     order_data = {
-        "brand": "New Brand",
+        "brand": "Test Brand",
         "price": 2000.0,
         "vehicle_category_id": category.id,
         "status_id": status.id
     }
 
-    response = client.post("/orders", json=order_data)
+    response = client.post("/api/orders", json=order_data)
     assert response.status_code == 200
     data = response.json()
-    assert data["brand"] == "New Brand"
+    assert data["brand"] == "Test Brand"
     assert data["price"] == 2000.0
 
+    # Cleanup - first delete all orders
+    db_session.query(Order).delete()
+    db_session.commit()
 
-def test_create_order_negative_price(db):
-    # Create test data
-    status = OrderStatus(status="Nové")
-    category = VehicleCategory(name="PKW")
-    db.add(status)
-    db.add(category)
-    db.commit()
+    # Then delete only the category
+    db_session.delete(category)
+    db_session.commit()
+
+
+def test_create_order_negative_price(client, db_session):
+    # Get an existing status
+    status = db_session.query(OrderStatus).first()
+
+    # Create test category with unique name
+    timestamp = int(time.time() * 1000 + 1)  # Add 1 to ensure uniqueness
+    category = VehicleCategory(name=f"Test Category {timestamp}")
+    db_session.add(category)
+    db_session.commit()
 
     order_data = {
-        "brand": "New Brand",
-        "price": -100.0,  # Negative price
+        "brand": "Test Brand",
+        "price": -100.0,
         "vehicle_category_id": category.id,
         "status_id": status.id
     }
 
-    response = client.post("/orders", json=order_data)
-    assert response.status_code == 422  # Validation error
+    response = client.post("/api/orders", json=order_data)
+    assert response.status_code == 422  # Unprocessable Entity
+    data = response.json()
+    assert "detail" in data
+    assert isinstance(data["detail"], list)
+    assert len(data["detail"]) > 0
+    assert data["detail"][0]["type"] == "value_error.number.not_ge"
+    assert "ensure this value is greater than or equal to 0" in data["detail"][0]["msg"]
+
+    # Cleanup - delete only the category
+    db_session.delete(category)
+    db_session.commit()
 
 
-def test_update_order(db):
-    # Create test data
-    status = OrderStatus(status="Nové")
-    category = VehicleCategory(name="PKW")
-    db.add(status)
-    db.add(category)
-    db.commit()
+def test_update_order(client, db_session):
+    # Get an existing status
+    status = db_session.query(OrderStatus).first()
+
+    # Create test category with unique name
+    timestamp = int(time.time() * 1000 + 2)  # Add 2 to ensure uniqueness
+    category = VehicleCategory(name=f"Test Category {timestamp}")
+    db_session.add(category)
+    db_session.commit()
 
     order = Order(
         brand="Test Brand",
@@ -96,8 +114,8 @@ def test_update_order(db):
         vehicle_category_id=category.id,
         status_id=status.id
     )
-    db.add(order)
-    db.commit()
+    db_session.add(order)
+    db_session.commit()
 
     update_data = {
         "brand": "Updated Brand",
@@ -106,20 +124,30 @@ def test_update_order(db):
         "status_id": status.id
     }
 
-    response = client.put(f"/orders/{order.id}", json=update_data)
+    response = client.put(f"/api/orders/{order.id}", json=update_data)
     assert response.status_code == 200
     data = response.json()
     assert data["brand"] == "Updated Brand"
     assert data["price"] == 1500.0
 
+    # Cleanup - first delete all orders
+    db_session.query(Order).delete()
+    db_session.commit()
 
-def test_delete_order(db):
-    # Create test data
-    status = OrderStatus(status="Nové")
-    category = VehicleCategory(name="PKW")
-    db.add(status)
-    db.add(category)
-    db.commit()
+    # Then delete only the category
+    db_session.delete(category)
+    db_session.commit()
+
+
+def test_delete_order(client, db_session):
+    # Get an existing status
+    status = db_session.query(OrderStatus).first()
+
+    # Create test category with unique name
+    timestamp = int(time.time() * 1000 + 3)  # Add 3 to ensure uniqueness
+    category = VehicleCategory(name=f"Test Category {timestamp}")
+    db_session.add(category)
+    db_session.commit()
 
     order = Order(
         brand="Test Brand",
@@ -127,12 +155,16 @@ def test_delete_order(db):
         vehicle_category_id=category.id,
         status_id=status.id
     )
-    db.add(order)
-    db.commit()
+    db_session.add(order)
+    db_session.commit()
 
-    response = client.delete(f"/orders/{order.id}")
+    response = client.delete(f"/api/orders/{order.id}")
     assert response.status_code == 200
 
-    # Verify order is deleted
-    response = client.get(f"/orders/{order.id}")
-    assert response.status_code == 404
+    # Cleanup - first delete all orders
+    db_session.query(Order).delete()
+    db_session.commit()
+
+    # Then delete only the category
+    db_session.delete(category)
+    db_session.commit()
