@@ -52,8 +52,11 @@ services:
       - api
     ports:
       - "5173:5173"
+    env_file:
+      - .env
     environment:
       - TZ=Europe/Bratislava
+      - VITE_API_URL=http://3.68.73.229:8008
     networks:
       - project_default
 
@@ -71,4 +74,3 @@ services:
 
 networks:
   project_default:
-    external: true
