@@ -8,8 +8,8 @@ from typing import Optional
 class OrderBase(BaseModel):
     brand: str = Field(..., example="Mercedes")
     price: float = Field(..., ge=0, example=999.99)
-    vehicle_category_id: Optional[int] = None
-    status_id: Optional[int] = None
+    vehicle_category_id: int = Field(..., example=1)
+    status_id: int = Field(..., example=1)
 
 
 class OrderCreate(OrderBase):

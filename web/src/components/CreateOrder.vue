@@ -121,10 +121,11 @@ export default {
       }
 
       try {
-        // Ensure status_id is set to 1 if not selected
         const orderData = {
-          ...this.form,
-          status_id: this.form.status || 1
+          brand: this.form.brand,
+          price: this.form.price,
+          vehicle_category_id: this.form.category,
+          status_id: this.form.status || 1  // Keep the fallback to status 1
         };
         
         await api.post('/api/orders', orderData);
