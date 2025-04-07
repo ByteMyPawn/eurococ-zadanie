@@ -5,10 +5,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies and explicitly install axios
+# Install dependencies
 RUN npm install && \
-    npm install axios && \
-    ls -la node_modules/axios && \
+    npm install axios@1.6.7 --save && \
     npm list axios
 
 # Copy the rest of the application
