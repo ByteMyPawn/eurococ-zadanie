@@ -48,6 +48,8 @@ def get_orders(
     db: Session = Depends(get_db)
 ):
     logger.info(f"Fetching orders - page: {page}, per_page: {per_page}")
+    logger.info(
+        f"Filters - date_from: {date_from}, date_to: {date_to}, price_from: {price_from}, price_to: {price_to}")
 
     # Build query
     query = db.query(Order)
@@ -61,44 +63,66 @@ def get_orders(
             status_id = int(status)
             query = query.filter(Order.status_id == status_id)
         except ValueError:
-            pass
+            logger.warning(f"Invalid status ID format: {status}")
 
     if category and category.strip():
         try:
             category_id = int(category)
             query = query.filter(Order.vehicle_category_id == category_id)
         except ValueError:
-            pass
+            logger.warning(f"Invalid category ID format: {category}")
 
     if date_from and date_from.strip():
         try:
+            # Try parsing with time first
             date_from_dt = datetime.fromisoformat(date_from)
-            query = query.filter(Order.created_at >= date_from_dt)
         except ValueError:
-            pass
+            try:
+                # If that fails, try parsing just the date
+                date_from_dt = datetime.strptime(date_from, '%Y-%m-%d')
+            except ValueError:
+                logger.warning(f"Invalid date_from format: {date_from}")
+            else:
+                query = query.filter(Order.created_at >= date_from_dt)
+        else:
+            query = query.filter(Order.created_at >= date_from_dt)
 
     if date_to and date_to.strip():
         try:
+            # Try parsing with time first
             date_to_dt = datetime.fromisoformat(date_to)
-            # Add end of day time (23:59:59) to include the entire day
-            date_to_dt = date_to_dt.replace(hour=23, minute=59, second=59)
-            query = query.filter(Order.created_at <= date_to_dt)
         except ValueError:
-            pass
+            try:
+                # If that fails, try parsing just the date
+                date_to_dt = datetime.strptime(date_to, '%Y-%m-%d')
+            except ValueError:
+                logger.warning(f"Invalid date_to format: {date_to}")
+            else:
+                # Add end of day time (23:59:59) to include the entire day
+                date_to_dt = date_to_dt.replace(hour=23, minute=59, second=59)
+                query = query.filter(Order.created_at <= date_to_dt)
+        else:
+            query = query.filter(Order.created_at <= date_to_dt)
 
     if price_from and price_from.strip():
         try:
-            price_from_val = float(price_from)
+            # Try to convert to float, handling both comma and dot decimal
+            # separators
+            price_from_val = float(price_from.replace(',', '.'))
             query = query.filter(Order.price >= price_from_val)
+            logger.info(f"Applied price_from filter: {price_from_val}")
         except ValueError:
-            pass
+            logger.warning(f"Invalid price_from format: {price_from}")
 
     if price_to and price_to.strip():
         try:
-            price_to_val = float(price_to)
+            # Try to convert to float, handling both comma and dot decimal
+            # separators
+            price_to_val = float(price_to.replace(',', '.'))
             query = query.filter(Order.price <= price_to_val)
+            logger.info(f"Applied price_to filter: {price_to_val}")
         except ValueError:
-            pass
+            logger.warning(f"Invalid price_to format: {price_to}")
 
     # Get total count
     total = query.count()
