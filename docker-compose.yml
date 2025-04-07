@@ -56,7 +56,7 @@ services:
       - .env
     environment:
       - TZ=Europe/Bratislava
-      - VITE_API_URL=http://3.68.73.229:8008
+      - VITE_API_URL=${VITE_API_URL}
     networks:
       - project_default
 
