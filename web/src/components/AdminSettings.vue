@@ -201,11 +201,11 @@ h3 {
 
 .error-message {
   color: #dc3545;
-  padding: 6px 10px;
-  margin-top: 8px;
+  padding: 10px;
+  margin: 10px 0;
   border: 1px solid #dc3545;
   border-radius: 4px;
   background-color: #f8d7da;
-  font-size: 0.85em;
+  font-weight: 500;
 }
 </style> 

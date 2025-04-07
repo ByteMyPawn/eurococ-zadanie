@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from ..database import get_db
-from ..models import VehicleCategory
+from ..models import VehicleCategory, Order
 from ..schemas import VehicleCategoryCreate, VehicleCategoryResponse
 from typing import List
 
@@ -72,6 +72,14 @@ def delete_vehicle_category(category_id: int, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=404,
             detail="Vehicle category not found")
+
+    # Check if category is in use
+    orders_using_category = db.query(Order).filter(
+        Order.vehicle_category_id == category_id).first()
+    if orders_using_category:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete category that is in use")
 
     db.delete(category)
     db.commit()

@@ -80,6 +80,8 @@ def get_orders(
     if date_to and date_to.strip():
         try:
             date_to_dt = datetime.fromisoformat(date_to)
+            # Add end of day time (23:59:59) to include the entire day
+            date_to_dt = date_to_dt.replace(hour=23, minute=59, second=59)
             query = query.filter(Order.created_at <= date_to_dt)
         except ValueError:
             pass

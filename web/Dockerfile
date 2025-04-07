@@ -1,4 +1,4 @@
-FROM node:20.11.1-alpine
+FROM node:18.17.0-alpine
 
 WORKDIR /app
 
@@ -8,10 +8,12 @@ RUN apk add --no-cache python3 make g++
 # Copy package files
 COPY package*.json ./
 
-# Clean install dependencies
+# Clean install dependencies with specific esbuild version
 RUN rm -rf node_modules package-lock.json && \
     npm cache clean --force && \
-    npm install
+    npm install esbuild@0.19.12 --save-dev && \
+    npm install && \
+    npm install vite@4.4.9 --save-dev
 
 # Copy the rest of the application
 COPY . .

@@ -3,12 +3,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 from app.main import app
-from app.database import get_db
+from app.database import get_db, Base, engine as prod_engine
+from app.models import OrderStatus, VehicleCategory
 import os
 
-# Use main database
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:root@db:3306/orders_db?charset=utf8mb4"
-engine = create_engine(
+# Use test database
+SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:root@db:3306/orders_test_db?charset=utf8mb4"
+test_engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=3600
@@ -16,8 +17,63 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
-    bind=engine
+    bind=test_engine
 )
+
+
+def init_test_data(session):
+    # Initialize order statuses
+    statuses = [
+        OrderStatus(status="Nové"),
+        OrderStatus(status="Vybavené"),
+        OrderStatus(status="Vybavuje sa"),
+        OrderStatus(status="Stornované")
+    ]
+    for status in statuses:
+        session.add(status)
+
+    # Initialize vehicle categories
+    categories = [
+        VehicleCategory(name="LKW"),
+        VehicleCategory(name="PKW")
+    ]
+    for category in categories:
+        session.add(category)
+
+    session.commit()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    # Create test database tables
+    Base.metadata.create_all(bind=test_engine)
+
+    # Initialize test data
+    session = TestingSessionLocal()
+    try:
+        init_test_data(session)
+    finally:
+        session.close()
+
+    yield
+    # Clean up after all tests are done
+    Base.metadata.drop_all(bind=test_engine)
+
+
+@pytest.fixture(scope="function", autouse=True)
+def clean_database():
+    # Clean up before each test
+    session = TestingSessionLocal()
+    try:
+        # Don't delete statuses and categories
+        tables_to_clean = [table for table in reversed(Base.metadata.sorted_tables)
+                           if table.name not in ['order_statuses', 'vehicle_categories']]
+        for table in tables_to_clean:
+            session.execute(table.delete())
+        session.commit()
+    finally:
+        session.close()
+    yield
 
 
 @pytest.fixture(scope="session")

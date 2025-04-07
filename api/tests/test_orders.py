@@ -108,6 +108,7 @@ def test_update_order(client, db_session):
     db_session.add(category)
     db_session.commit()
 
+    # Create initial order
     order = Order(
         brand="Test Brand",
         price=1000.0,
@@ -117,18 +118,23 @@ def test_update_order(client, db_session):
     db_session.add(order)
     db_session.commit()
 
+    # Use the same category for update
     update_data = {
         "brand": "Updated Brand",
         "price": 1500.0,
-        "vehicle_category_id": category.id,
+        "vehicle_category_id": category.id,  # Use the same category ID
         "status_id": status.id
     }
 
     response = client.put(f"/api/orders/{order.id}", json=update_data)
     assert response.status_code == 200
-    data = response.json()
-    assert data["brand"] == "Updated Brand"
-    assert data["price"] == 1500.0
+
+    # Verify the update
+    updated_order = response.json()
+    assert updated_order["brand"] == "Updated Brand"
+    assert updated_order["price"] == 1500.0
+    assert updated_order["vehicle_category_id"] == category.id
+    assert updated_order["status_id"] == status.id
 
     # Cleanup - first delete all orders
     db_session.query(Order).delete()

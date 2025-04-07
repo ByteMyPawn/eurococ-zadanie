@@ -7,7 +7,7 @@ client = TestClient(app)
 
 
 def test_get_categories(client, db_session):
-    response = client.get("/api/settings/categories")
+    response = client.get("/api/vehicle-categories/")
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)

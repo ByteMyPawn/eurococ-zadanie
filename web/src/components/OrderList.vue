@@ -40,7 +40,7 @@
             <label>Dátum od:</label>
             <input 
               type="date" 
-              v-model="filters.dateFrom" 
+              v-model="filters.date_from" 
               class="form-control"
             >
           </div>
@@ -49,7 +49,7 @@
             <label>Dátum do:</label>
             <input 
               type="date" 
-              v-model="filters.dateTo" 
+              v-model="filters.date_to" 
               class="form-control"
             >
           </div>
@@ -58,7 +58,7 @@
             <label>Cena od:</label>
             <input 
               type="number" 
-              v-model="filters.priceFrom" 
+              v-model="filters.price_from" 
               class="form-control"
               min="0"
             >
@@ -68,7 +68,7 @@
             <label>Cena do:</label>
             <input 
               type="number" 
-              v-model="filters.priceTo" 
+              v-model="filters.price_to" 
               class="form-control"
               min="0"
             >
